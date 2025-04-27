@@ -1,0 +1,151 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: "VPC with 3 public and 3 private subnets for group20-final in us-east-1"
+
+Resources:
+
+  Group20FinalVPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: 10.0.0.0/16
+      EnableDnsSupport: true
+      EnableDnsHostnames: true
+      Tags:
+        - Key: Name
+          Value: group20-final-vpc
+
+  Group20FinalInternetGateway:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags:
+        - Key: Name
+          Value: group20-final-igw
+
+  Group20FinalAttachGateway:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      VpcId: !Ref Group20FinalVPC
+      InternetGatewayId: !Ref Group20FinalInternetGateway
+
+  Group20FinalPublicRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref Group20FinalVPC
+      Tags:
+        - Key: Name
+          Value: group20-final-public-rt
+
+  Group20FinalPublicRoute:
+    Type: AWS::EC2::Route
+    DependsOn: Group20FinalAttachGateway
+    Properties:
+      RouteTableId: !Ref Group20FinalPublicRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref Group20FinalInternetGateway
+
+  # Public Subnet 1
+  Group20FinalPublicSubnet1:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref Group20FinalVPC
+      CidrBlock: 10.0.1.0/24
+      AvailabilityZone: us-east-1a
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value: group20-final-public-subnet-1
+
+  # Public Subnet 2
+  Group20FinalPublicSubnet2:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref Group20FinalVPC
+      CidrBlock: 10.0.2.0/24
+      AvailabilityZone: us-east-1b
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value: group20-final-public-subnet-2
+
+  # Public Subnet 3
+  Group20FinalPublicSubnet3:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref Group20FinalVPC
+      CidrBlock: 10.0.3.0/24
+      AvailabilityZone: us-east-1c
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value: group20-final-public-subnet-3
+
+  # Private Subnet 1
+  Group20FinalPrivateSubnet1:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref Group20FinalVPC
+      CidrBlock: 10.0.101.0/24
+      AvailabilityZone: us-east-1a
+      MapPublicIpOnLaunch: false
+      Tags:
+        - Key: Name
+          Value: group20-final-private-subnet-1
+
+  # Private Subnet 2
+  Group20FinalPrivateSubnet2:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref Group20FinalVPC
+      CidrBlock: 10.0.102.0/24
+      AvailabilityZone: us-east-1b
+      MapPublicIpOnLaunch: false
+      Tags:
+        - Key: Name
+          Value: group20-final-private-subnet-2
+
+  # Private Subnet 3
+  Group20FinalPrivateSubnet3:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref Group20FinalVPC
+      CidrBlock: 10.0.103.0/24
+      AvailabilityZone: us-east-1c
+      MapPublicIpOnLaunch: false
+      Tags:
+        - Key: Name
+          Value: group20-final-private-subnet-3
+
+  # Associate Public Subnets to Public Route Table
+  Group20FinalPublicSubnet1RouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref Group20FinalPublicSubnet1
+      RouteTableId: !Ref Group20FinalPublicRouteTable
+
+  Group20FinalPublicSubnet2RouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref Group20FinalPublicSubnet2
+      RouteTableId: !Ref Group20FinalPublicRouteTable
+
+  Group20FinalPublicSubnet3RouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref Group20FinalPublicSubnet3
+      RouteTableId: !Ref Group20FinalPublicRouteTable
+
+Outputs:
+  VPCId:
+    Description: "VPC ID"
+    Value: !Ref Group20FinalVPC
+  PublicSubnet1Id:
+    Value: !Ref Group20FinalPublicSubnet1
+  PublicSubnet2Id:
+    Value: !Ref Group20FinalPublicSubnet2
+  PublicSubnet3Id:
+    Value: !Ref Group20FinalPublicSubnet3
+  PrivateSubnet1Id:
+    Value: !Ref Group20FinalPrivateSubnet1
+  PrivateSubnet2Id:
+    Value: !Ref Group20FinalPrivateSubnet2
+  PrivateSubnet3Id:
+    Value: !Ref Group20FinalPrivateSubnet3
