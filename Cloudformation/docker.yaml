@@ -1,25 +1,19 @@
 AWSTemplateFormatVersion: '2010-09-09'
-Description: 'Launch EC2 Docker instance from existing AMI into Public Subnet with Security Group, 16GB storage'
+Description: 'Launch EC2 Docker instance from existing AMI into Public Subnet with Security Group'
 
 Resources:
   Group20FinalDockerInstance:
     Type: AWS::EC2::Instance
     Properties:
       InstanceType: t2.large
-      ImageId: ami-0d03d80ec6d76f423         # Replace with your actual AMI ID
-      KeyName: Final_project                   # Replace with your actual KeyPair Name
+      ImageId: ami-0d03d80ec6d76f423
+      KeyName: Final_project
       NetworkInterfaces:
         - AssociatePublicIpAddress: true
           DeviceIndex: 0
-          SubnetId: subnet-0b86e2ce2f52cb797    # Replace with your actual Public Subnet ID
+          SubnetId: subnet-0b86e2ce2f52cb797
           GroupSet:
-            - sg-0fd602d8438d13ba8              # Replace with your Security Group ID
-      BlockDeviceMappings:
-        - DeviceName: /dev/xvda
-          Ebs:
-            VolumeSize: 16
-            VolumeType: gp2
-            DeleteOnTermination: true
+            - sg-0fd602d8438d13ba8
       Tags:
         - Key: Name
           Value: group20-final-docker-instance
@@ -31,4 +25,5 @@ Outputs:
   PublicIP:
     Description: "Public IP Address of Instance"
     Value: !GetAtt Group20FinalDockerInstance.PublicIp
+
 
