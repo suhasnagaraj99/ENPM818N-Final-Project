@@ -16,12 +16,6 @@ Resources:
       ImageId: ami-0d54545e9eebf1a05
       KeyName: Final_project
       IamInstanceProfile: !Ref InstanceProfile
-      BlockDeviceMappings:
-        - DeviceName: /dev/xvda
-          Ebs:
-            VolumeSize: 16
-            VolumeType: gp2
-            DeleteOnTermination: true
       NetworkInterfaces:
         - DeviceIndex: 0
           SubnetId: subnet-0b86e2ce2f52cb797
