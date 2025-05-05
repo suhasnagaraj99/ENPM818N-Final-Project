@@ -122,7 +122,7 @@ This phase simplifies application deployment using Helm charts, including upgrad
 - If you'd like to test Helm’s upgrade capability, apply the modified values file:
   ```bash
   helm upgrade otel-demo open-telemetry/opentelemetry-demo \
-  -f values.yaml \
+  -f otel-demo-values.yaml \
   -n helm-deployment
   ```
 
