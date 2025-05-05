@@ -1,0 +1,36 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Launch EC2 instance (t2.micro) from AMI into Public Subnet with IAM Role and Security Group
+
+Resources:
+  InstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      Path: /
+      Roles:
+        - group20-final-eks-client-role
+
+  K8sClientInstance:
+    Type: AWS::EC2::Instance
+    Properties:
+      InstanceType: t2.micro
+      ImageId: ami-04a1066e86bcb977b
+      KeyName: Final_project
+      IamInstanceProfile: !Ref InstanceProfile
+      NetworkInterfaces:
+        - DeviceIndex: 0
+          SubnetId: subnet-0b86e2ce2f52cb797
+          AssociatePublicIpAddress: true
+          GroupSet:
+            - sg-0e64d1e8574530864
+      Tags:
+        - Key: Name
+          Value: Group20-Kubernetes-Client
+
+Outputs:
+  InstanceId:
+    Description: ID of the EC2 instance
+    Value: !Ref K8sClientInstance
+
+  PublicIP:
+    Description: Public IP Address of the launched instance
+    Value: !GetAtt K8sClientInstance.PublicIp
