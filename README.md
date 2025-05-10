@@ -112,7 +112,7 @@ This phase simplifies application deployment using Helm charts, including upgrad
   ```bash
   helm repo add open-telemetry https://open-telemetry.github.io/opentelemetry-helm-charts
   helm repo update
-  helm install otel-demo open-telemetry/opentelemetry-demo -n helm-deployment
+  helm install otel-demo open-telemetry/opentelemetry-demo -n helm-deployment --create-namespace
   ```
 - This command will deploy all necessary Kubernetes resources using the Helm chart.
 
@@ -137,7 +137,7 @@ This phase simplifies application deployment using Helm charts, including upgrad
 #### Step 1: Forward Port Inside EC2 Instance
 - Inside the Kubernetes client EC2 instance, run:
   ```bash
-  kubectl port-forward -n helm-deployment svc/frontendproxy 8080:8080
+  kubectl port-forward -n helm-deployment svc/frontend-proxy 8080:8080
   ```
 
 #### Step 2: Tunnel Port from Your Local PC
