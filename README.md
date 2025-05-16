@@ -151,7 +151,8 @@ This phase simplifies application deployment using Helm charts, including upgrad
   ```
   http://localhost:8080
   ```
-#### Phase 3
+# Phase 3
+- This phase will give you steps to configure prometheus and alertmanager for monitoring your system
 - After you have finished the Phase 2. Please follow these steps to launch your alertmanager
 #### Step 1: Inside the instance of your EKS cluster run these commands to add the prometheus repository and install the kube state metrics
 ```bash
