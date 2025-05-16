@@ -151,5 +151,145 @@ This phase simplifies application deployment using Helm charts, including upgrad
   ```
   http://localhost:8080
   ```
+#### Phase 3
+- After you have finished the Phase 2. Please follow these steps to launch your alertmanager
+#### Step 1: Inside the instance of your EKS cluster run these commands to add the prometheus repository and install the kube state metrics
+```bash
+helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+helm repo update
+helm upgrade --install kube-state-metrics prometheus-community/kube-state-metrics \
+  --namespace kube-system
+```
+#### Step 2: Verify the installation
+```bash
+kubectl get pods -n kube-system | grep kube-state-metrics
+```
+#### Step 3: Inside the same instance you configure SNS topic and subscribe your email
+```bash
+aws sns create-topic --name kube-alerts
+aws sns subscribe \
+  --topic-arn arn:aws:sns:us-east-1:<YOUR_ACCOUNT_ID>:kube-alerts \
+  --protocol email \
+  --notification-endpoint you@example.com
+```
+##### Note: Make sure to subscribe your email which you will be receiving
+#### Step 4: Create the alertmanager-config.yaml, alertmanager-deployment.yaml, alertmanager-service.yaml file and paste the contents from alertmanager folder. After which deploy them using below commands in same order.
+#### Note: Make sure your namespace is same as the one you have used in hel deployment
+```bash
+kubectl apply -f alertmanager-config.yaml
+kubectl apply -f alertmanager-deployment.yaml
+kubectl apply -f alertmanager-service.yaml
+```
+#### Step 5: Grant IAM permission for alertmanager to publish to SNS. Add the below policy to the NodegroupInstance(eg: eksctl-otel-demo-nodegroup-...-NodeInstanceRole-xxx)
+```bash
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": "SNS:Publish",
+      "Resource": "arn:aws:sns:us-east-1:<YOUR_ACCOUNT_ID>:kube-alerts"
+    }
+  ]
+}
+```
+#### Step 6: Simulate to evaluate your policy. Makesure "EvalDecision": "allowed"
+```bash
+aws iam simulate-principal-policy \
+  --policy-source-arn arn:aws:iam::<YOUR_ACCOUNT_ID>:role/<NodeInstanceRole> \
+  --action-names sns:Publish \
+  --resource-arns arn:aws:sns:us-east-1:<YOUR_ACCOUNT_ID>:kube-alerts
+```
+#### Step 7: Add alerting rules and data to ConfigMap: Check you pod server for prometheus and alertmanager to add the configmap 
+```bash
+kubectl get svc -n helm-deployment
+```
+- You can check your configmap using below.
+```bash
+kubectl edit cm <your-prometheus-server> -n helm-deployment
+```
+- Add these contents under the data.prometheus.yaml
+```bash
+scrape_configs:
+  - job_name: 'kube-state-metrics'
+    static_configs:
+      - targets: ['kube-state-metrics.kube-system.svc.cluster.local:8080']
+    relabel_configs:
+      - source_labels: [__meta_kubernetes_namespace]
+        target_label: namespace
+      - source_labels: [__meta_kubernetes_pod_name]
+        target_label: pod
+```
+- Add this alerting rule for the configmap
+```bash
+rule_files:
+  - /etc/prometheus/alerting_rules.yml
+
+# this creates a new file alerting_rules.yml in the same ConfigMap:
+
+data:
+  alerting_rules.yml: |
+    groups:
+    - name: pod-restart-alerts
+      rules:
+      - alert: HighPodRestart
+        expr: increase(kube_pod_container_status_restarts_total{namespace="otel-demo"}[5m]) > 3
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Pod {{ $labels.pod }} in namespace {{ $labels.namespace }} has high restarts"
+          description: "Restart count over 3 in last 5m: {{ $value }}"
+```
+- Also check if these content exists. If not add them
+```bash
+alerting:
+    alertmanagers:
+    - static_configs:
+      - targets:
+        - 'alertmanager.helm-deployment.svc.cluster.local:9093'
+```
+#### Note : There might be errors if your naming is different. So double check the pod server names
+#### Step 8: Apply the changes and rooll-out prometheus restart
+```bash
+kubectl rollout restart deployment prometheus -n helm-deployment
+```
+#### Step 9: Verify if everything is in order by port forwarding. You should be able to see the alerting rule you have configured
+```bash
+kubectl port-forward svc/prometheus -n helm-deployment 9090:9090
+kubectl port-forward svc/alertmanager -n helm-deployment 9093:9093
+```
+#### Step 10: Do a crash test to check if alerting rule is able to fire and send alerts to your email.
+- Create a file test-crash.yaml and add these contents
+```bash
+apiVersion: v1
+kind: Pod
+metadata:
+  name: test-crash
+  namespace: helm-deployment
+spec:
+  restartPolicy: Always
+  containers:
+  - name: crash
+    image: busybox
+    command: ["sh", "-c", "exit 1"]
+```
+- Apply the changes
+```bash
+kubectl apply -f test-crash.yaml
+```
+- Watch the pod restarts triggered by crash test
+```bash
+kubectl get pod test-crash -n helm-deployment --watch
+```
+- Wait for few minutes and in your prometheus and alertmanager UI you should see
+- Prometheus → fires the HighPodRestart alert
+- Alertmanager → groups and forwards to the sns-alerts receiver
+- You will get an email to your inbox
+
+
+
+
+
 
 
