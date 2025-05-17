@@ -25,12 +25,6 @@ Resources:
       Tags:
         - Key: Name
           Value: Group20-Kubernetes-Client
-  
-  MyEIPAssociation:
-    Type: AWS::EC2::EIPAssociation
-    Properties:
-      AllocationId: eipalloc-06afe35acfa20a96a
-      InstanceId: !Ref K8sClientInstance
 
 Outputs:
   InstanceId:
