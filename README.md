@@ -165,7 +165,7 @@ helm upgrade --install kube-state-metrics prometheus-community/kube-state-metric
 ```bash
 kubectl get pods -n kube-system | grep kube-state-metrics
 ```
-#### Step 3: Inside the same instance you configure SNS topic and subscribe your email
+#### Step 3: Inside the local terminal you configure SNS topic and subscribe your email
 ```bash
 aws sns create-topic --name kube-alerts
 aws sns subscribe \
