@@ -28,7 +28,7 @@ This phase demonstrates manual deployment of the OpenTelemetry application first
 - Inside the terminal of the EC2 instance, run:
   ```bash
   eksctl create cluster \
-    --name helm-group20-final-eks-cluster \
+    --name group20-final-eks-cluster \
     --region us-east-1 \
     --vpc-public-subnets subnet-0b86e2ce2f52cb797,subnet-0c876f78820ff8b4c,subnet-0c7e88b436b1441e6 \
     --nodegroup-name group20-final-workers \
@@ -95,7 +95,7 @@ This phase simplifies application deployment using Helm charts, including upgrad
 - Inside the terminal of the EC2 instance, run:
   ```bash
   eksctl create cluster \
-    --name group20-final-eks-cluster \
+    --name helm-group20-final-eks-cluster \
     --region us-east-1 \
     --vpc-public-subnets subnet-0b86e2ce2f52cb797,subnet-0c876f78820ff8b4c,subnet-0c7e88b436b1441e6 \
     --nodegroup-name group20-final-workers \
