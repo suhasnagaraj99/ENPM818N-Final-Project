@@ -1,0 +1,84 @@
+  config:
+    global:
+      resolve_timeout: 5m
+         route:
+      group_by: ['job', 'alertname', 'kubernetes_namespace', 'kubernetes_pod_name']
+      group_wait: 30s
+      group_interval: 5m
+      repeat_interval: 12h
+      receiver: 'sns-notifications'
+      routes:
+        - receiver: 'sns-notifications'
+          matchers:
+            - alertname =~ ".+" # Send all alerts to this receiver
+  receivers:
+    - name: 'sns-notifications'
+      sns_configs:
+        - topic_arn: '<your-sns-topic-arn>' # Replace with your SNS Topic ARN
+          sigv4:
+            region: '<your-aws-region>' # e.g., us-east-1
+          api_url: 'https://sns.us-east-1.amazonaws.com'
+          attributes:
+            key: 'Source'
+            value: 'PrometheusAlertmanager'
+          message: |
+            {{ define "sns.default.message" }}
+            Alertname: {{ .CommonLabels.alertname }}{{ if .CommonLabels.severity }} - Severity: {{ .CommonLabels.severity }}{{ end }}
+            Summary: {{ .CommonAnnotations.summary }}
+            Description: {{ .CommonAnnotations.description }}
+            Namespace: {{ .CommonLabels.kubernetes_namespace }}
+            Pod: {{ .CommonLabels.kubernetes_pod_name }}
+            Starts At: {{ .StartsAt }}
+            Ends At: {{ .EndsAt }}
+            GeneratorURL: {{ .GeneratorURL }}
+            Fingerprint: {{ .Fingerprint }}
+            {{ range .Alerts }}
+              Alert: {{ .Labels.alertname }}
+              Summary: {{ .Annotations.summary }}
+              Description: {{ .Annotations.description }}
+              Labels:
+              {{ range .Labels.SortedPairs }}  {{ .Name }}: {{ .Value }}
+              {{ end }}
+              Annotations:
+              {{ range .Annotations.SortedPairs }}  {{ .Name }}: {{ .Value }}
+              {{ end }}
+              Source: {{ .GeneratorURL }}
+            {{ end }}
+            {{ end }}
+            {{ template "sns.default.message" . }}
+
+  service:
+    type: NodePort # Or LoadBalancer
+    nodePort: 31093 
+
+# Grafana 
+
+grafana:
+  enabled: true # Set to false if you don't need Grafana
+  service:
+    type: NodePort 
+    nodePort: 30300 
+  adminPassword: <admin-password>
+
+# Ensure Prometheus discovers rules in the namespace where you deploy them
+defaultRules:
+  create: true
+  rules:
+    alertmanager: true
+    etcd: true
+    general: true
+    k8s: true
+    kubeApiserver: true
+    kubelet: true
+    kubePrometheusGeneral: true
+    kubePrometheusNodeAlerting: true
+    kubePrometheusNodeRecording: true
+    kubernetesApps: true
+    kubernetesResources: true
+    kubernetesStorage: true
+    kubernetesSystem: true
+    network: true
+    node: true
+    prometheus: true
+    prometheusOperator: true
+
