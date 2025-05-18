@@ -13,7 +13,7 @@ Resources:
     Type: AWS::EC2::Instance
     Properties:
       InstanceType: t2.micro
-      ImageId: ami-0d54545e9eebf1a05
+      ImageId: ami-08600927dd170f76f
       KeyName: Final_project
       IamInstanceProfile: !Ref InstanceProfile
       NetworkInterfaces:

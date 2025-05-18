@@ -135,9 +135,11 @@ metadata:
     app.kubernetes.io/version: v3.1.0
     app.kubernetes.io/part-of: prometheus
   name: prometheus
+  namespace: otel-demo
 subjects:
   - kind: ServiceAccount
     name: prometheus
+    namespace: otel-demo
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
