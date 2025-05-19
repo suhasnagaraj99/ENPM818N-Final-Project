@@ -1,0 +1,118 @@
+name: Build, Deploy, and Rollback to EKS
+
+on:
+  push:
+    branches:
+      - main
+
+env:
+  AWS_REGION: us-east-1
+  EKS_CLUSTER_NAME: group20-final-eks-cluster
+  IMAGE_TAG: ${{ github.sha }}
+  K8S_NAMESPACE: otel-demo
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - service: cart
+            deployment: cart
+            contiainer: cart
+            dockerfile: ./src/cart/src/Dockerfile
+          - service: email
+            deployment: email
+            container: email
+            dockerfile: ./src/email/Dockerfile
+
+    outputs:
+      image_tags: ${{ steps.export.outputs.image_tags }}
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@v3
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Login to ECR
+        run: |
+          aws ecr get-login-password | docker login --username AWS --password-stdin ${{ secrets.ECR_REGISTRY }}
+
+      - name: Ensure ECR Repository Exists
+        run: |
+          aws ecr describe-repositories --repository-names otel-demo/${{ matrix.service }} ||           aws ecr create-repository --repository-name otel-demo/${{ matrix.service }}
+          
+      - name: Build and Push Image
+        run: |
+          IMAGE_URI=${{ secrets.ECR_REGISTRY }}/${{ matrix.service }}:${{ env.IMAGE_TAG }}
+          docker build -t $IMAGE_URI -f ${{ matrix.dockerfile }} .
+          docker push $IMAGE_URI
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - service: cart
+            deployment: cart
+            container: cart
+          - service: email
+            deployment: email
+            container: email
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Update kubeconfig for EKS
+        run: |
+          aws eks update-kubeconfig --name $EKS_CLUSTER_NAME --region $AWS_REGION
+
+      - name: Deploy to EKS using image from ECR
+        run: |
+          IMAGE_URI=${{ secrets.ECR_REGISTRY }}/otel-demo/${{ matrix.service }}:${IMAGE_TAG}
+          echo "Deploying $IMAGE_URI to ${{ matrix.deployment }}..."
+          kubectl set image deployment/${{ matrix.deployment }} ${{ matrix.container }}=$IMAGE_URI -n $K8S_NAMESPACE
+          kubectl rollout status deployment/${{ matrix.deployment }} -n $K8S_NAMESPACE
+
+
+  rollback:
+    needs: deploy
+    if: failure()
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - deployment: cart
+            container: cart
+          - deployment: email
+            container: email
+
+    steps:
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Update kubeconfig
+        run: aws eks update-kubeconfig --name $EKS_CLUSTER_NAME --region $AWS_REGION
+
+      - name: Rollback Deployment
+        run: |
+          echo "Rolling back ${{ matrix.deployment }} to last stable image..."
+          kubectl rollout undo deployment/${{ matrix.deployment }} -n $K8S_NAMESPACE
